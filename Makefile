@@ -1,10 +1,10 @@
 NAME=blockChain
 DB=blockChain.db
-GOOS       = linux
-GOARCH     = amd64
+GOOS = darwin
+GOARCH = amd64
 
 
-build:
+build: clean
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build  -o $(NAME) ./*.go
 
 clean:

@@ -35,7 +35,7 @@ func (cli *CLI) Run() {
 			fmt.Printf("%s\n", Usage)
 			return
 		}
-		cli.AddBlock(cmds[2])
+		//cli.AddBlock(cmds[2])//todo
 	case "printChain":
 		cli.PrintChain()
 	default:

@@ -25,7 +25,7 @@ var (
 	FirstBlock       = []byte("0x0000000000000000")
 )
 
-func NewBlockChain() *BlockChain {
+func NewBlockChain(miner string) *BlockChain {
 	db, err := bolt.Open(BlockChainDBName, 0600, nil)
 	if err != nil {
 		log.Fatal(err)
@@ -39,7 +39,9 @@ func NewBlockChain() *BlockChain {
 				log.Panic(err)
 			}
 			//创建创世块
-			genesisBlock := NewBlock(gensisInfo, FirstBlock)
+			//创世快中只有一个挖矿交易，只有Coinbase
+			coinbase := NewCoinbaseTx(miner)
+			genesisBlock := NewBlock([]*Transaction{coinbase}, FirstBlock)
 			err = b.Put(genesisBlock.Hash, genesisBlock.Serialize())
 			if err != nil {
 				panic(err)
@@ -61,13 +63,13 @@ func NewBlockChain() *BlockChain {
 }
 
 //add block
-func (bc *BlockChain) AddBlock(data string) {
+func (bc *BlockChain) AddBlock(txs []*Transaction) {
 	err := bc.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(BucketName)
 		if b == nil {
 			panic("bucket nil")
 		}
-		block := NewBlock(data, bc.tail)
+		block := NewBlock(txs, bc.tail)
 		b.Put(block.Hash, block.Serialize())
 		b.Put(LastHashKey, block.Hash)
 		bc.tail = block.Hash
@@ -97,6 +99,9 @@ func (it *BlockChainIterator) Next() *Block {
 			panic("bucket nil")
 		}
 		blockInfo := b.Get(it.current)
+		if len(blockInfo) == 0 {
+			return nil
+		}
 		block = Deserialize(blockInfo)
 		it.current = block.PrevBlockHash
 		return nil

@@ -9,29 +9,20 @@ package main
 
 import "fmt"
 
-func (cli *CLI) AddBlock(data string) {
-	cli.bc.AddBlock(data)
+func (cli *CLI) AddBlock(txs []*Transaction) {
+	cli.bc.AddBlock(txs)
 	fmt.Printf("add block ok\n")
 }
 func (cli *CLI) PrintChain() {
 	blockIterator := cli.bc.NewIterator()
 	for block := blockIterator.Next(); block != nil; block = blockIterator.Next() {
+		fmt.Printf("************************************\n")
 		fmt.Printf("pre block hash: %x\n", block.PrevBlockHash)
 		fmt.Printf("nonce: %x\n", block.Nonce)
 		fmt.Printf("hash: %x\n", block.Hash)
-		fmt.Println("data: ", string(block.Data))
+		fmt.Println("transactions: ", block.Transactions)
 		pow := NewProofOfWork(block)
 		fmt.Printf("is valid: %+v\n", pow.IsValid())
-	}
-}
-func printBlockChain(bc *BlockChain) {
-	blockIterator := bc.NewIterator()
-	for block := blockIterator.Next(); block != nil; block = blockIterator.Next() {
-		fmt.Printf("pre block hash: %x\n", block.PrevBlockHash)
-		fmt.Printf("nonce: %x\n", block.Nonce)
-		fmt.Printf("hash: %x\n", block.Hash)
-		fmt.Println("data: ", string(block.Data))
-		pow := NewProofOfWork(block)
-		fmt.Printf("is valid: %+v\n", pow.IsValid())
+		fmt.Printf("====================================\n")
 	}
 }

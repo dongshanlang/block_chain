@@ -22,11 +22,12 @@ type Block struct {
 	Difficulty    uint64 //难度
 	Nonce         uint64 //随机数，挖矿即要计算的随机数
 	Hash          []byte // current block hash
-	Data          []byte
+	//Data          []byte
+	Transactions []*Transaction
 }
 
 //create block,
-func NewBlock(data string, preBlockHash []byte) *Block {
+func NewBlock(txs []*Transaction, preBlockHash []byte) *Block {
 	block := Block{
 		Version:       1.0,
 		PrevBlockHash: preBlockHash,
@@ -35,7 +36,8 @@ func NewBlock(data string, preBlockHash []byte) *Block {
 		Difficulty:    10,
 		//Nonce:         10,
 		Hash: nil,
-		Data: []byte(data),
+		//Data: []byte(data),
+		Transactions: txs,
 	}
 	if string(preBlockHash) == string(FirstBlock) {
 		block.PrevBlockHash = nil
@@ -50,13 +52,14 @@ func NewBlock(data string, preBlockHash []byte) *Block {
 
 func (block *Block) SetHash() {
 	var data []byte
+	//todo
 	tmp := [][]byte{
 		uintToByte(block.Version),
 		block.PrevBlockHash,
 		block.MerKleRoot,
 		uintToByte(block.TimeStamp),
 		uintToByte(block.Difficulty),
-		block.Data,
+		//block.Transactions,
 		uintToByte(block.Nonce),
 	}
 	data = bytes.Join(tmp, []byte{})
