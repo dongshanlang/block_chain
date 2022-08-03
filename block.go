@@ -42,6 +42,7 @@ func NewBlock(txs []*Transaction, preBlockHash []byte) *Block {
 	if string(preBlockHash) == string(FirstBlock) {
 		block.PrevBlockHash = nil
 	}
+	block.HashTransactions()
 	block.SetHash()
 	pow := NewProofOfWork(&block)
 	hash, nonce := pow.Run()
@@ -83,6 +84,16 @@ func (block *Block) Deserialize(data []byte) *Block {
 		panic(err)
 	}
 	return &b
+}
+func (block *Block) HashTransactions() {
+	var hashes []byte
+	//交易的ID就是交易的哈希值，，可以将交易的id拼接起来，整体做hash运算，作为merkleRoot
+	for _, tx := range block.Transactions {
+		txid := tx.TxID
+		hashes = append(hashes, txid...)
+	}
+	hash := sha256.Sum256(hashes)
+	block.MerKleRoot = hash[:]
 }
 
 //func (block *Block) Serialize() []byte {

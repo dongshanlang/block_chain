@@ -8,6 +8,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/boltdb/bolt"
 	"log"
 )
@@ -40,7 +41,7 @@ func NewBlockChain(miner string) *BlockChain {
 			}
 			//创建创世块
 			//创世快中只有一个挖矿交易，只有Coinbase
-			coinbase := NewCoinbaseTx(miner)
+			coinbase := NewCoinbaseTx(miner, "fist block")
 			genesisBlock := NewBlock([]*Transaction{coinbase}, FirstBlock)
 			err = b.Put(genesisBlock.Hash, genesisBlock.Serialize())
 			if err != nil {
@@ -110,4 +111,110 @@ func (it *BlockChainIterator) Next() *Block {
 		panic(err)
 	}
 	return block
+}
+func (bc *BlockChain) FindMyUtoxs(address string) []TxOutput {
+	//todo
+	it := bc.NewIterator()
+	var UtxOutputs []TxOutput
+	//已经消耗过的
+	spentUtxos := make(map[string][]int64)
+	//遍历block
+	for block := it.Next(); block != nil; block = it.Next() {
+		//遍历交易
+		for _, transaction := range block.Transactions {
+			//遍历input
+			for _, input := range transaction.TxInputs {
+				//找到属于我的所有output
+				if address == input.Address {
+					fmt.Printf("%s find my input, i: %d\n", address, input.Index)
+					key := string(input.TxID)
+					spentUtxos[key] = append(spentUtxos[key], input.Index)
+				}
+			}
+		OUTPUT:
+			//遍历output
+			for i, output := range transaction.TxOutputs {
+				//找到属于我的所有output
+				if address == output.Address {
+
+					key := string(transaction.TxID)
+					indexes := spentUtxos[key]
+					if len(indexes) != 0 {
+						fmt.Printf("当前笔交易中又被消耗过的output\n")
+						for _, j := range indexes {
+							if int64(i) == j {
+								fmt.Printf("i==j,当前的output已经被消耗过了，跳过不统计\n")
+								continue OUTPUT
+							}
+						}
+					}
+
+					UtxOutputs = append(UtxOutputs, output)
+					fmt.Printf("%s find my out, i: %d\n", address, i)
+				}
+			}
+		}
+	}
+	return UtxOutputs
+}
+func (bc *BlockChain) GetBalance(address string) float64 {
+	utxos := bc.FindMyUtoxs(address)
+	var total float64
+	for _, utxo := range utxos {
+		total += utxo.Value
+	}
+	fmt.Printf(" %s balance: %f\n", address, total)
+	return total
+}
+func (bc *BlockChain) FindNeedUtxos(from string, amount float64) (map[string][]int64, float64) {
+	//todo 正道utos集合
+	it := bc.NewIterator()
+	//var UtxOutputs []TxOutput
+	var resValue float64
+	var needUtxos = make(map[string][]int64)
+	//已经消耗过的
+	spentUtxos := make(map[string][]int64)
+	//遍历block
+	for block := it.Next(); block != nil; block = it.Next() {
+		//遍历交易
+		for _, transaction := range block.Transactions {
+			//遍历input
+			for _, input := range transaction.TxInputs {
+				//找到属于我的所有input
+				if from == input.Address {
+					fmt.Printf("%s find my input, i: %d\n", from, input.Index)
+					key := string(input.TxID)
+					spentUtxos[key] = append(spentUtxos[key], input.Index)
+				}
+			}
+		OUTPUT:
+			//遍历output
+			for i, output := range transaction.TxOutputs {
+				//找到属于我的所有output
+				if from == output.Address {
+
+					key := string(transaction.TxID)
+					indexes := spentUtxos[key]
+					if len(indexes) != 0 {
+						fmt.Printf("当前笔交易中又被消耗过的output\n")
+						for _, j := range indexes {
+							if int64(i) == j {
+								fmt.Printf("i==j,当前的output已经被消耗过了，跳过不统计\n")
+								continue OUTPUT
+							}
+						}
+					}
+
+					//UtxOutputs = append(UtxOutputs, output)\
+					needUtxos[key] = append(needUtxos[key], int64(i))
+					resValue += output.Value
+					if resValue >= amount {
+						return needUtxos, resValue
+					}
+					fmt.Printf("%s find my out, i: %d\n", from, i)
+				}
+			}
+		}
+	}
+	return nil, 0
 }

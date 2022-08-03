@@ -59,14 +59,12 @@ func (pow *ProofOfWork) Run() ([]byte, uint64) {
 
 func (pow *ProofOfWork) prepareData(nonce uint64) []byte {
 	block := pow.block
-	//todo
 	tmp := [][]byte{
 		uintToByte(block.Version),
 		block.PrevBlockHash,
 		block.MerKleRoot,
 		uintToByte(block.TimeStamp),
 		uintToByte(block.Difficulty),
-		//block.Data,
 		uintToByte(nonce),
 	}
 	var data []byte

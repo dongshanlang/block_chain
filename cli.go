@@ -10,12 +10,14 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 )
 
 const (
 	Usage = `
-	./blockchain addBlock "xxxxxxxx" 添加数据到区块链
-	./blockchain printChain         打印区块链
+	./blockchain printChain                  打印区块链
+	./blockchain getBalance   address        获取余额
+	./blockchain send FROM TO AMOUNT MINER   转账命令
 `
 )
 
@@ -30,14 +32,22 @@ func (cli *CLI) Run() {
 		return
 	}
 	switch cmds[1] {
-	case "addBlock":
-		if len(cmds) != 3 {
+	case "printChain":
+		cli.PrintChain()
+	case "getBalance":
+		cli.GetBalance(cmds[2])
+	case "send":
+		fmt.Printf("send\n")
+		if len(cmds) != 6 {
+			fmt.Printf("无效参数\n")
 			fmt.Printf("%s\n", Usage)
 			return
 		}
-		//cli.AddBlock(cmds[2])//todo
-	case "printChain":
-		cli.PrintChain()
+		from := cmds[2]
+		to := cmds[3]
+		amount, _ := strconv.ParseFloat(cmds[4], 64)
+		miner := cmds[5]
+		cli.Send(from, to, amount, miner)
 	default:
 		fmt.Printf("%s\n", Usage)
 	}

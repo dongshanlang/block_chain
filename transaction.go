@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
+	"fmt"
 )
 
 //交易结构
@@ -42,14 +43,14 @@ func (tx *Transaction) SetTxID() {
 
 // NewCoinbaseTx 挖矿
 //特点：只有输出，没有输入
-func NewCoinbaseTx(miner string) *Transaction {
+func NewCoinbaseTx(miner string, data string) *Transaction {
 	//todo
 	var inputs []TxInput
 
 	inputs = append(inputs, TxInput{
 		TxID:    nil,
 		Index:   -1,
-		Address: gensisInfo,
+		Address: data,
 	})
 
 	var outputs []TxOutput
@@ -64,4 +65,49 @@ func NewCoinbaseTx(miner string) *Transaction {
 	}
 	transaction.SetTxID()
 	return transaction
+}
+func NewTransaction(from, to string, amount float64, bc *BlockChain) *Transaction {
+	utxos := make(map[string][]int64)
+	var resValue float64
+	//假如李四转赵六4元钱，返回的信息为：
+	//utxos[0x333]=int64{0,1}
+	utxos, resValue = bc.FindNeedUtxos(from, amount)
+
+	if resValue < amount {
+		fmt.Printf("less money \n")
+		return nil
+	}
+
+	var inputs []TxInput
+	var outputs []TxOutput
+	for txid, indexes := range utxos {
+		for _, i := range indexes {
+			input := TxInput{
+				TxID:    []byte(txid),
+				Index:   i,
+				Address: from,
+			}
+			inputs = append(inputs, input)
+		}
+	}
+
+	output := TxOutput{
+		Value:   amount,
+		Address: to,
+	}
+	outputs = append(outputs, output)
+	if resValue > amount {
+		output1 := TxOutput{
+			Value:   resValue - amount,
+			Address: from,
+		}
+		outputs = append(outputs, output1)
+	}
+	tx := Transaction{
+		TxID:      nil,
+		TxInputs:  inputs,
+		TxOutputs: outputs,
+	}
+	tx.SetTxID()
+	return &tx
 }

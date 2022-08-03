@@ -20,9 +20,30 @@ func (cli *CLI) PrintChain() {
 		fmt.Printf("pre block hash: %x\n", block.PrevBlockHash)
 		fmt.Printf("nonce: %x\n", block.Nonce)
 		fmt.Printf("hash: %x\n", block.Hash)
-		fmt.Println("transactions: ", block.Transactions)
+		fmt.Printf("transactions: %+v", block.Transactions)
 		pow := NewProofOfWork(block)
 		fmt.Printf("is valid: %+v\n", pow.IsValid())
 		fmt.Printf("====================================\n")
 	}
+}
+
+func (cli *CLI) GetBalance(address string) {
+	cli.bc.GetBalance(address)
+}
+func (cli *CLI) Send(from, to string, amount float64, miner string) {
+	//创建挖矿交易
+	coinbase := NewCoinbaseTx(miner, "hello world")
+	//创建普通交易
+	tx := NewTransaction(from, to, amount, cli.bc)
+	txs := []*Transaction{coinbase}
+	if tx != nil {
+		txs = append(txs, tx)
+	}
+	if tx == nil {
+		fmt.Printf("无效交易")
+		return
+	}
+	//添加区块
+	cli.bc.AddBlock(txs)
+	fmt.Printf("wakuang chenggong!")
 }
