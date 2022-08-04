@@ -19,6 +19,7 @@ const (
 	./blockchain getBalance   address                 获取余额
 	./blockchain send FROM TO AMOUNT MINER            转账命令
 	./blockchain createBlockChain address             创建区块链
+	./blockchain createWallet                         创建钱包
 `
 )
 
@@ -57,6 +58,14 @@ func (cli *CLI) Run() {
 		amount, _ := strconv.ParseFloat(cmds[4], 64)
 		miner := cmds[5]
 		cli.Send(from, to, amount, miner)
+	case "createWallet":
+		if len(cmds) != 3 {
+			fmt.Printf("无效参数\n")
+			fmt.Printf("%s\n", Usage)
+			return
+		}
+		address := cmds[2]
+		cli.CreateWallet(address)
 	default:
 		fmt.Printf("%s\n", Usage)
 	}
