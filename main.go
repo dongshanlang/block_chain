@@ -12,7 +12,7 @@ var (
 )
 
 func main() {
-	bc := NewBlockChain("monitor")
-	cli := CLI{bc: bc}
+	//bc := NewBlockChain()
+	cli := CLI{}
 	cli.Run()
 }

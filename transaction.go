@@ -66,6 +66,15 @@ func NewCoinbaseTx(miner string, data string) *Transaction {
 	transaction.SetTxID()
 	return transaction
 }
+
+func (tx *Transaction) IsCoinbase() bool {
+	//特点：只有一个input；引用ID是nil；引用的索引是-1
+	if len(tx.TxInputs) == 1 && tx.TxInputs[0].TxID == nil && tx.TxInputs[0].Index == -1 {
+		return true
+	}
+	return false
+}
+
 func NewTransaction(from, to string, amount float64, bc *BlockChain) *Transaction {
 	utxos := make(map[string][]int64)
 	var resValue float64

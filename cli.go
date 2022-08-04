@@ -15,14 +15,15 @@ import (
 
 const (
 	Usage = `
-	./blockchain printChain                  打印区块链
-	./blockchain getBalance   address        获取余额
-	./blockchain send FROM TO AMOUNT MINER   转账命令
+	./blockchain printChain                           打印区块链
+	./blockchain getBalance   address                 获取余额
+	./blockchain send FROM TO AMOUNT MINER            转账命令
+	./blockchain createBlockChain address             创建区块链
 `
 )
 
 type CLI struct {
-	bc *BlockChain
+	//bc *BlockChain，自己获取区块链实例
 }
 
 func (cli *CLI) Run() {
@@ -36,6 +37,14 @@ func (cli *CLI) Run() {
 		cli.PrintChain()
 	case "getBalance":
 		cli.GetBalance(cmds[2])
+	case "createBlockChain":
+		if len(cmds) != 3 {
+			fmt.Printf("无效参数\n")
+			fmt.Printf("%s\n", Usage)
+			return
+		}
+		address := cmds[2]
+		cli.CreateBlockChain(address)
 	case "send":
 		fmt.Printf("send\n")
 		if len(cmds) != 6 {

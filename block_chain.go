@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/boltdb/bolt"
 	"log"
+	"os"
 )
 
 //create block chain
@@ -26,11 +27,16 @@ var (
 	FirstBlock       = []byte("0x0000000000000000")
 )
 
-func NewBlockChain(miner string) *BlockChain {
+func CreateBlockChain(miner string) *BlockChain {
+	if IsFileExist(BlockChainDBName) {
+		fmt.Printf("block chain has already exist!\n")
+		return nil
+	}
 	db, err := bolt.Open(BlockChainDBName, 0600, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer db.Close()
 	var tail []byte
 	err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(BucketName))
@@ -55,6 +61,33 @@ func NewBlockChain(miner string) *BlockChain {
 		} else {
 			tail = b.Get(LastHashKey)
 		}
+		return nil
+	})
+	return &BlockChain{
+		db:   db,
+		tail: tail,
+	}
+
+}
+
+//返回区块链实例
+func NewBlockChain() *BlockChain {
+	if !IsFileExist(BlockChainDBName) {
+		fmt.Printf("block chain does not exist!\n")
+		return nil
+	}
+	db, err := bolt.Open(BlockChainDBName, 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var tail []byte
+	err = db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(BucketName))
+		if b == nil {
+			fmt.Printf("buket is nil, please check!\n")
+			os.Exit(1)
+		}
+		tail = b.Get(LastHashKey)
 		return nil
 	})
 	return &BlockChain{
@@ -112,10 +145,10 @@ func (it *BlockChainIterator) Next() *Block {
 	}
 	return block
 }
-func (bc *BlockChain) FindMyUtoxs(address string) []TxOutput {
-	//todo
+func (bc *BlockChain) FindMyUtoxs(address string) []UTXOInfo {
+	var UTXInfos []UTXOInfo
 	it := bc.NewIterator()
-	var UtxOutputs []TxOutput
+	//var UtxOutputs []TxOutput
 	//已经消耗过的
 	spentUtxos := make(map[string][]int64)
 	//遍历block
@@ -123,22 +156,24 @@ func (bc *BlockChain) FindMyUtoxs(address string) []TxOutput {
 		//遍历交易
 		for _, transaction := range block.Transactions {
 			//遍历input
-			for _, input := range transaction.TxInputs {
-				//找到属于我的所有output
-				if address == input.Address {
-					fmt.Printf("%s find my input, i: %d\n", address, input.Index)
-					key := string(input.TxID)
-					spentUtxos[key] = append(spentUtxos[key], input.Index)
+			if transaction.IsCoinbase() == false { //普通交易才需要遍历
+				for _, input := range transaction.TxInputs {
+					//找到属于我的所有output
+					if address == input.Address {
+						fmt.Printf("%s find my input, i: %d\n", address, input.Index)
+						key := string(input.TxID)
+						spentUtxos[key] = append(spentUtxos[key], input.Index)
+					}
 				}
 			}
+
+			key := string(transaction.TxID)
+			indexes := spentUtxos[key]
 		OUTPUT:
 			//遍历output
 			for i, output := range transaction.TxOutputs {
 				//找到属于我的所有output
 				if address == output.Address {
-
-					key := string(transaction.TxID)
-					indexes := spentUtxos[key]
 					if len(indexes) != 0 {
 						fmt.Printf("当前笔交易中又被消耗过的output\n")
 						for _, j := range indexes {
@@ -148,73 +183,46 @@ func (bc *BlockChain) FindMyUtoxs(address string) []TxOutput {
 							}
 						}
 					}
-
-					UtxOutputs = append(UtxOutputs, output)
+					utxoInfo := UTXOInfo{
+						TxID:   transaction.TxID,
+						Index:  int64(i),
+						Output: output,
+					}
+					UTXInfos = append(UTXInfos, utxoInfo)
 					fmt.Printf("%s find my out, i: %d\n", address, i)
 				}
 			}
 		}
 	}
-	return UtxOutputs
+	return UTXInfos
 }
 func (bc *BlockChain) GetBalance(address string) float64 {
-	utxos := bc.FindMyUtoxs(address)
+	utxoInfos := bc.FindMyUtoxs(address)
 	var total float64
-	for _, utxo := range utxos {
-		total += utxo.Value
+	for _, utxoInfo := range utxoInfos {
+		total += utxoInfo.Output.Value
 	}
 	fmt.Printf(" %s balance: %f\n", address, total)
 	return total
 }
 func (bc *BlockChain) FindNeedUtxos(from string, amount float64) (map[string][]int64, float64) {
-	//todo 正道utos集合
-	it := bc.NewIterator()
-	//var UtxOutputs []TxOutput
 	var resValue float64
 	var needUtxos = make(map[string][]int64)
-	//已经消耗过的
-	spentUtxos := make(map[string][]int64)
-	//遍历block
-	for block := it.Next(); block != nil; block = it.Next() {
-		//遍历交易
-		for _, transaction := range block.Transactions {
-			//遍历input
-			for _, input := range transaction.TxInputs {
-				//找到属于我的所有input
-				if from == input.Address {
-					fmt.Printf("%s find my input, i: %d\n", from, input.Index)
-					key := string(input.TxID)
-					spentUtxos[key] = append(spentUtxos[key], input.Index)
-				}
-			}
-		OUTPUT:
-			//遍历output
-			for i, output := range transaction.TxOutputs {
-				//找到属于我的所有output
-				if from == output.Address {
-
-					key := string(transaction.TxID)
-					indexes := spentUtxos[key]
-					if len(indexes) != 0 {
-						fmt.Printf("当前笔交易中又被消耗过的output\n")
-						for _, j := range indexes {
-							if int64(i) == j {
-								fmt.Printf("i==j,当前的output已经被消耗过了，跳过不统计\n")
-								continue OUTPUT
-							}
-						}
-					}
-
-					//UtxOutputs = append(UtxOutputs, output)\
-					needUtxos[key] = append(needUtxos[key], int64(i))
-					resValue += output.Value
-					if resValue >= amount {
-						return needUtxos, resValue
-					}
-					fmt.Printf("%s find my out, i: %d\n", from, i)
-				}
-			}
+	//复用FindMyUtxo函数，这个函数包含所有的信息
+	utxoInfos := bc.FindMyUtoxs(from)
+	for _, utxoInfo := range utxoInfos {
+		key := string(utxoInfo.TxID)
+		needUtxos[key] = append(needUtxos[key], int64(utxoInfo.Index))
+		resValue += utxoInfo.Output.Value
+		if resValue >= amount {
+			break
 		}
 	}
-	return nil, 0
+	return needUtxos, resValue
+}
+
+type UTXOInfo struct {
+	TxID   []byte
+	Index  int64    //output索引值
+	Output TxOutput //output本身
 }

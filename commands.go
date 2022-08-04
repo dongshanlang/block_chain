@@ -10,11 +10,25 @@ package main
 import "fmt"
 
 func (cli *CLI) AddBlock(txs []*Transaction) {
-	cli.bc.AddBlock(txs)
+	bc := NewBlockChain()
+	if bc != nil {
+		defer bc.db.Close()
+	} else {
+		fmt.Printf("block chain is nil\n")
+		return
+	}
+	bc.AddBlock(txs)
 	fmt.Printf("add block ok\n")
 }
 func (cli *CLI) PrintChain() {
-	blockIterator := cli.bc.NewIterator()
+	bc := NewBlockChain()
+	if bc != nil {
+		defer bc.db.Close()
+	} else {
+		fmt.Printf("block chain is nil\n")
+		return
+	}
+	blockIterator := bc.NewIterator()
 	for block := blockIterator.Next(); block != nil; block = blockIterator.Next() {
 		fmt.Printf("************************************\n")
 		fmt.Printf("pre block hash: %x\n", block.PrevBlockHash)
@@ -28,13 +42,27 @@ func (cli *CLI) PrintChain() {
 }
 
 func (cli *CLI) GetBalance(address string) {
-	cli.bc.GetBalance(address)
+	bc := NewBlockChain()
+	if bc != nil {
+		defer bc.db.Close()
+	} else {
+		fmt.Printf("block chain is nil\n")
+		return
+	}
+	bc.GetBalance(address)
 }
 func (cli *CLI) Send(from, to string, amount float64, miner string) {
+	bc := NewBlockChain()
+	if bc != nil {
+		defer bc.db.Close()
+	} else {
+		fmt.Printf("block chain is nil\n")
+		return
+	}
 	//创建挖矿交易
 	coinbase := NewCoinbaseTx(miner, "hello world")
 	//创建普通交易
-	tx := NewTransaction(from, to, amount, cli.bc)
+	tx := NewTransaction(from, to, amount, bc)
 	txs := []*Transaction{coinbase}
 	if tx != nil {
 		txs = append(txs, tx)
@@ -44,6 +72,17 @@ func (cli *CLI) Send(from, to string, amount float64, miner string) {
 		return
 	}
 	//添加区块
-	cli.bc.AddBlock(txs)
+
+	bc.AddBlock(txs)
 	fmt.Printf("wakuang chenggong!")
+}
+func (cli *CLI) CreateBlockChain(address string) {
+	bc := CreateBlockChain(address)
+	if bc != nil {
+		defer bc.db.Close()
+	} else {
+		fmt.Printf("block chain is nil\n")
+		return
+	}
+	fmt.Printf("create block chain success!\n")
 }

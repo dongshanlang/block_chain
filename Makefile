@@ -4,7 +4,7 @@ GOOS = darwin
 GOARCH = amd64
 
 
-build: clean
+build:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build  -o $(NAME) ./*.go
 
 clean:

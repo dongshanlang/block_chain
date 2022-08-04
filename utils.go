@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"log"
+	"os"
 )
 
 func uintToByte(num uint64) []byte {
@@ -21,4 +22,12 @@ func uintToByte(num uint64) []byte {
 		log.Panicln(err)
 	}
 	return buffer.Bytes()
+}
+
+func IsFileExist(fileName string) bool {
+	_, err := os.Stat(fileName)
+	if err == nil {
+		return true
+	}
+	return false
 }
