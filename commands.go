@@ -87,6 +87,14 @@ func (cli *CLI) CreateBlockChain(address string) {
 	fmt.Printf("create block chain success!\n")
 }
 func (cli *CLI) CreateWallet(address string) {
-	w := NewWalletKeyPair()
-	fmt.Printf("wallet: %s\n", w.GetAddress())
+	w := NewWallets()
+	fmt.Printf("wallet: %s\n", w.CreateWallets())
+}
+
+func (cli *CLI) ListAddress() {
+	ws := NewWallets()
+	addresses := ws.ListAddress()
+	for _, address := range addresses {
+		fmt.Println(address)
+	}
 }

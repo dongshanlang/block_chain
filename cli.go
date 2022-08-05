@@ -20,6 +20,7 @@ const (
 	./blockchain send FROM TO AMOUNT MINER            转账命令
 	./blockchain createBlockChain address             创建区块链
 	./blockchain createWallet                         创建钱包
+	./blockchain listAddress                          创建钱包
 `
 )
 
@@ -66,6 +67,14 @@ func (cli *CLI) Run() {
 		}
 		address := cmds[2]
 		cli.CreateWallet(address)
+	case "listAddress":
+		fmt.Printf("listAddress\n")
+		if len(cmds) != 2 {
+			fmt.Printf("无效参数\n")
+			fmt.Printf("%s\n", Usage)
+			return
+		}
+		cli.ListAddress()
 	default:
 		fmt.Printf("%s\n", Usage)
 	}

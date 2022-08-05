@@ -10,5 +10,6 @@ build:
 clean:
 	rm -rf ./$(NAME)
 	rm -rf ./$(DB)
+	rm -rf ./wallet.dat
 
 

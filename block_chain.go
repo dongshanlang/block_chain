@@ -8,6 +8,8 @@
 package main
 
 import (
+	"block_chain/base58"
+	"bytes"
 	"fmt"
 	"github.com/boltdb/bolt"
 	"log"
@@ -145,10 +147,9 @@ func (it *BlockChainIterator) Next() *Block {
 	}
 	return block
 }
-func (bc *BlockChain) FindMyUtoxs(address string) []UTXOInfo {
+func (bc *BlockChain) FindMyUtoxs(publicKeyHash []byte) []UTXOInfo {
 	var UTXInfos []UTXOInfo
 	it := bc.NewIterator()
-	//var UtxOutputs []TxOutput
 	//已经消耗过的
 	spentUtxos := make(map[string][]int64)
 	//遍历block
@@ -159,8 +160,8 @@ func (bc *BlockChain) FindMyUtoxs(address string) []UTXOInfo {
 			if transaction.IsCoinbase() == false { //普通交易才需要遍历
 				for _, input := range transaction.TxInputs {
 					//找到属于我的所有output
-					if address == input.Address {
-						fmt.Printf("%s find my input, i: %d\n", address, input.Index)
+					if bytes.Equal(HashPublicKey(input.PublicKey), publicKeyHash) {
+						fmt.Printf("%s find my input, i: %d\n", publicKeyHash, input.Index)
 						key := string(input.TxID)
 						spentUtxos[key] = append(spentUtxos[key], input.Index)
 					}
@@ -173,7 +174,7 @@ func (bc *BlockChain) FindMyUtoxs(address string) []UTXOInfo {
 			//遍历output
 			for i, output := range transaction.TxOutputs {
 				//找到属于我的所有output
-				if address == output.Address {
+				if bytes.Equal(publicKeyHash, output.PublicKeyHash) {
 					if len(indexes) != 0 {
 						fmt.Printf("当前笔交易中又被消耗过的output\n")
 						for _, j := range indexes {
@@ -189,7 +190,7 @@ func (bc *BlockChain) FindMyUtoxs(address string) []UTXOInfo {
 						Output: output,
 					}
 					UTXInfos = append(UTXInfos, utxoInfo)
-					fmt.Printf("%s find my out, i: %d\n", address, i)
+					fmt.Printf("%s find my out, i: %d\n", publicKeyHash, i)
 				}
 			}
 		}
@@ -197,7 +198,9 @@ func (bc *BlockChain) FindMyUtoxs(address string) []UTXOInfo {
 	return UTXInfos
 }
 func (bc *BlockChain) GetBalance(address string) float64 {
-	utxoInfos := bc.FindMyUtoxs(address)
+	decodeInfo := base58.Decode(address)
+	publicKeyHash := decodeInfo[1 : len(decodeInfo)-4]
+	utxoInfos := bc.FindMyUtoxs(publicKeyHash)
 	var total float64
 	for _, utxoInfo := range utxoInfos {
 		total += utxoInfo.Output.Value
@@ -205,11 +208,13 @@ func (bc *BlockChain) GetBalance(address string) float64 {
 	fmt.Printf(" %s balance: %f\n", address, total)
 	return total
 }
-func (bc *BlockChain) FindNeedUtxos(from string, amount float64) (map[string][]int64, float64) {
+func (bc *BlockChain) FindNeedUtxos(publicKeyHash []byte, amount float64) (map[string][]int64, float64) {
 	var resValue float64
 	var needUtxos = make(map[string][]int64)
 	//复用FindMyUtxo函数，这个函数包含所有的信息
-	utxoInfos := bc.FindMyUtoxs(from)
+	//decodeInfo := base58.Decode(from)
+	//publicKeyHash := decodeInfo[1 : len(decodeInfo)-4]
+	utxoInfos := bc.FindMyUtoxs(publicKeyHash)
 	for _, utxoInfo := range utxoInfos {
 		key := string(utxoInfo.TxID)
 		needUtxos[key] = append(needUtxos[key], int64(utxoInfo.Index))

@@ -42,7 +42,21 @@ func NewWalletKeyPair() *WalletKeyPair {
 	}
 }
 func (w *WalletKeyPair) GetAddress() string {
-	hash := sha256.Sum256(w.PublicKey)
+	publicHash := HashPublicKey(w.PublicKey)
+
+	version := 0x00
+	//21个字节
+	payload := append([]byte{byte(version)}, publicHash...)
+
+	checksum := CheckSum(payload) //4字节校验码
+
+	payload = append(payload, checksum...) //一共25个字节
+
+	address := base58.Encode(payload)
+	return address
+}
+func HashPublicKey(publicKey []byte) []byte {
+	hash := sha256.Sum256(publicKey)
 	//创建hash160对象
 	//向hash160中write数据
 	//做hash运算
@@ -52,18 +66,12 @@ func (w *WalletKeyPair) GetAddress() string {
 		panic(err)
 	}
 	publicHash := rip160Hasher.Sum(nil)
-
-	version := 0x00
-	//21个字节
-	payload := append([]byte{byte(version)}, publicHash...)
-
+	return publicHash
+}
+func CheckSum(payload []byte) []byte {
 	first := sha256.Sum256(payload)
 	second := sha256.Sum256(first[:])
 
 	checksum := second[0:4] //4字节校验码
-
-	payload = append(payload, checksum...) //一共25个字节
-
-	address := base58.Encode(payload)
-	return address
+	return checksum
 }
