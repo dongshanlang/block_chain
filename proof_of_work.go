@@ -45,7 +45,7 @@ func (pow *ProofOfWork) Run() ([]byte, uint64) {
 	var nonce uint64
 	var hash [32]byte
 	for {
-		fmt.Printf("%x\n", hash)
+		fmt.Printf("%x\r", hash)
 		hash = sha256.Sum256(pow.prepareData(nonce))
 		var bigIntTmp big.Int
 		bigIntTmp.SetBytes(hash[:])

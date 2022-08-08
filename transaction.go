@@ -10,6 +10,8 @@ package main
 import (
 	"block_chain/base58"
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/gob"
 	"fmt"
@@ -106,7 +108,7 @@ func NewTransaction(from, to string, amount float64, bc *BlockChain) *Transactio
 		return nil
 	}
 	//2。获取公钥私钥
-	//pivateKey := wallet.PrivateKey, 目前用不到
+	privateKey := wallet.PrivateKey //, 目前用不到
 	publicKey := wallet.PublicKey
 
 	publicKeyHash := HashPublicKey(wallet.PublicKey)
@@ -149,5 +151,74 @@ func NewTransaction(from, to string, amount float64, bc *BlockChain) *Transactio
 		TxOutputs: outputs,
 	}
 	tx.SetTxID()
+
+	bc.SignTransaction(&tx, privateKey)
 	return &tx
+}
+
+//para1: 私钥
+//para2： 交易input索引用的所有交易
+func (tx *Transaction) Sign(privateKey *ecdsa.PrivateKey, preTXs map[string]Transaction) bool {
+	fmt.Printf("对交易签名\n")
+	//	1。拷贝一份交易txCopy
+	//	做相应的裁剪，把每一个input的sig和publicKey设置为nil
+	//	output不做改变
+	txCopy := tx.TrimmedCopy()
+	//	2。遍历txCopy。inputs， 把这个input所引用的output的公钥哈希拿过来，赋值给publicKey
+	for i, input := range txCopy.TxInputs {
+		//找到引用的交易
+		preTx := preTXs[string(input.TxID)]
+		output := preTx.TxOutputs[input.Index]
+		txCopy.TxInputs[i].PublicKey = output.PublicKeyHash
+		//input.PublicKey = output.PublicKeyHash
+		//签名要对数据的hash进行签名
+		//我们的数据都在交易中，我们要求交易的hash
+		//Transaction的SetTxID函数就是对交易的hash
+		//所以我们可以使用交易ID作为我们的签名的内容
+		//	3。生成要签名的数据（哈希）
+		txCopy.SetTxID()
+		signData := txCopy.TxID
+		txCopy.TxInputs[i].PublicKey = nil
+		fmt.Printf("要签名的数据:%s\n", signData)
+		//	4。对数据进行签名，r、s
+		r, s, err := ecdsa.Sign(rand.Reader, privateKey, signData)
+		if err != nil {
+			fmt.Printf("交易签名失败：%v\n", err)
+			return false
+		}
+
+		//	5。拼接r  s为字节流，赋值给原始的交易的signature字段
+		signature := append(r.Bytes(), s.Bytes()...)
+		tx.TxInputs[i].Signature = signature
+	}
+
+	return true
+}
+func (tx *Transaction) TrimmedCopy() Transaction {
+	var inputs []TxInput
+	var outputs []TxOutput
+
+	for _, input := range tx.TxInputs {
+		inputTmp := TxInput{
+			TxID:      input.TxID,
+			Index:     input.Index,
+			Signature: nil,
+			PublicKey: nil,
+		}
+		inputs = append(inputs, inputTmp)
+
+	}
+	outputs = tx.TxOutputs
+
+	transaction := Transaction{
+		TxID:      tx.TxID,
+		TxInputs:  inputs,
+		TxOutputs: outputs,
+	}
+	return transaction
+
+}
+
+func (tx *Transaction) Verify(prevTxs map[string]Transaction) bool {
+	return true
 }

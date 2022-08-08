@@ -42,6 +42,10 @@ func (cli *CLI) PrintChain() {
 }
 
 func (cli *CLI) GetBalance(address string) {
+	if !IsValidAddress(address) {
+		fmt.Printf("illegle address\n")
+		return
+	}
 	bc := NewBlockChain()
 	if bc != nil {
 		defer bc.db.Close()
@@ -52,6 +56,15 @@ func (cli *CLI) GetBalance(address string) {
 	bc.GetBalance(address)
 }
 func (cli *CLI) Send(from, to string, amount float64, miner string) {
+	if !IsValidAddress(from) {
+		fmt.Printf("illegle address from: %s\n", from)
+		return
+	}
+	if !IsValidAddress(to) {
+		fmt.Printf("illegle address to: %s\n", to)
+		return
+	}
+
 	bc := NewBlockChain()
 	if bc != nil {
 		defer bc.db.Close()
@@ -74,9 +87,13 @@ func (cli *CLI) Send(from, to string, amount float64, miner string) {
 	//添加区块
 
 	bc.AddBlock(txs)
-	fmt.Printf("wakuang chenggong!")
+	fmt.Printf("wakuang chenggong!\n")
 }
 func (cli *CLI) CreateBlockChain(address string) {
+	if !IsValidAddress(address) {
+		fmt.Printf("illegle address\n")
+		return
+	}
 	bc := CreateBlockChain(address)
 	if bc != nil {
 		defer bc.db.Close()
@@ -87,6 +104,10 @@ func (cli *CLI) CreateBlockChain(address string) {
 	fmt.Printf("create block chain success!\n")
 }
 func (cli *CLI) CreateWallet(address string) {
+	//if !IsValidAddress(address) {
+	//	fmt.Printf("illegle address\n")
+	//	return
+	//}
 	w := NewWallets()
 	fmt.Printf("wallet: %s\n", w.CreateWallets())
 }

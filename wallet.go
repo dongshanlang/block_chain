@@ -9,6 +9,7 @@ package main
 
 import (
 	"block_chain/base58"
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -74,4 +75,21 @@ func CheckSum(payload []byte) []byte {
 
 	checksum := second[0:4] //4字节校验码
 	return checksum
+}
+func IsValidAddress(address string) bool {
+	//1.将输入的地址进行解码得到25字节
+	//2。去除前21字节，运行check sum函数，得到checksum1
+	//3。取出后4字节，得到checksum2
+	//4。比较两个checksum，如果地址相同有效，否则无效
+	decodeInfo := base58.Decode(address)
+	if len(decodeInfo) != 25 { //25是比特币的地址长度，固定值
+		return false
+	}
+	payload := decodeInfo[:len(decodeInfo)-4]
+	checkSum1 := CheckSum(payload)
+	checkSum2 := decodeInfo[len(decodeInfo)-4:]
+	if bytes.Equal(checkSum2, checkSum1) {
+		return true
+	}
+	return false
 }

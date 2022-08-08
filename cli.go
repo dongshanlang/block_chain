@@ -60,13 +60,13 @@ func (cli *CLI) Run() {
 		miner := cmds[5]
 		cli.Send(from, to, amount, miner)
 	case "createWallet":
-		if len(cmds) != 3 {
+		if len(cmds) != 2 {
 			fmt.Printf("无效参数\n")
 			fmt.Printf("%s\n", Usage)
 			return
 		}
-		address := cmds[2]
-		cli.CreateWallet(address)
+		//address := cmds[2]
+		cli.CreateWallet("address")
 	case "listAddress":
 		fmt.Printf("listAddress\n")
 		if len(cmds) != 2 {
