@@ -40,7 +40,21 @@ func (cli *CLI) PrintChain() {
 		fmt.Printf("====================================\n")
 	}
 }
-
+func (cli *CLI) PrintTX() {
+	bc := NewBlockChain()
+	if bc != nil {
+		defer bc.db.Close()
+	} else {
+		fmt.Printf("block chain is nil\n")
+		return
+	}
+	blockIterator := bc.NewIterator()
+	for block := blockIterator.Next(); block != nil; block = blockIterator.Next() {
+		for _, transaction := range block.Transactions {
+			fmt.Printf("%v\n", transaction)
+		}
+	}
+}
 func (cli *CLI) GetBalance(address string) {
 	if !IsValidAddress(address) {
 		fmt.Printf("illegle address\n")

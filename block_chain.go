@@ -104,12 +104,13 @@ func (bc *BlockChain) AddBlock(txs []*Transaction) {
 	//矿工得到交易时，第一时间对交易进行验证
 	//矿工如果不验证，即使挖矿成功，广播区块后，其它验证矿工仍然会校验每一笔交易
 	validTxs := []*Transaction{}
-	for _, tx := range validTxs {
+	for _, tx := range txs {
 		if bc.VerifyTransaction(tx) {
 			validTxs = append(validTxs, tx)
 			fmt.Printf("交易有效： %x\n", tx.TxID)
 		} else {
 			fmt.Printf("发现无效交易： %x\n", tx.TxID)
+			return
 		}
 	}
 

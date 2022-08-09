@@ -20,7 +20,8 @@ const (
 	./blockchain send FROM TO AMOUNT MINER            转账命令
 	./blockchain createBlockChain address             创建区块链
 	./blockchain createWallet                         创建钱包
-	./blockchain listAddress                          创建钱包
+	./blockchain listAddress                          打印地址
+	./blockchain printTX                              打印所有交易
 `
 )
 
@@ -75,6 +76,9 @@ func (cli *CLI) Run() {
 			return
 		}
 		cli.ListAddress()
+	case "printTX":
+		cli.PrintTX()
+
 	default:
 		fmt.Printf("%s\n", Usage)
 	}
